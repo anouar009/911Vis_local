@@ -3,7 +3,7 @@
 (function (app, window, d3, undefined) {
   "use strict";
 
-  var speed = 10000,
+  var speed = 100000,
     cycleTime = 500,
     paused = false,
     currentTime = new Date(),
