@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>911</title>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+ </head>
+  <body>
+
+
+<script type="text/javascript">
+
+d3.csv("911_clean.csv", function(error, csv) {
+
+if (error) throw error;
+
+function barchart(csv, date) { //TODO :  reset  
+
+var margin = {top: 20, right: 20, bottom: 30, left: 30}
+var width = 440 - margin.left-margin.right;
+var height = 350 - margin.top-margin.bottom;
+//Create SVG element and append map to the SVG
+
+d3.selectAll('.barsvg').remove()
+
+if (date) {
+      csv = csv.filter(function(o) { return o.date === date; });
+};
+
+
+var svg = d3.select("body")
+      .append("svg")
+      .attr('class','barsvg')
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+
+var div = d3.select("#sunburst").append("div") 
+    .attr("class", "tooltip")       
+    .style("opacity", 0);
+// add data points
+
+var cat=3;
+var hours=24;
+
+
+
+stackeddata=[]
+for(i=0;i<hours;i++)
+    {
+     stackeddata[i] = [0,0,0] //EMS, Traffic, Fire
+    }
+
+
+csv.forEach(function(item, index) {
+    if(item.category=='EMS')
+    {
+      stackeddata[item.hour][0] = stackeddata[item.hour][0]+1
+    }
+    if(item.category=='Traffic')
+    {
+      stackeddata[item.hour][1] = stackeddata[item.hour][1]+1
+    }
+    if(item.category=='Fire')
+    {
+      stackeddata[item.hour][2] = stackeddata[item.hour][2]+1
+    }
+})
+
+var m = 0
+
+for(i=0;i<hours;i++)
+    {
+     m = d3.max([d3.sum(stackeddata[i]),m])
+    }
+
+var y = d3.scaleLinear()
+    .domain([0,m+10])
+    .rangeRound([height, 0])
+
+var x = d3.scaleBand()
+    .rangeRound([0, width])
+    .paddingInner(0.05)
+    .align(0.1)
+    .domain(d3.range(hours));
+
+var z = d3.scaleOrdinal()
+    .range(["rgb(74, 189, 172)","rgb(255, 66, 26)", "rgb(251, 147, 33)"]);
+
+var g=svg.append("g").selectAll("g")
+          .data(d3.stack().keys(d3.range(cat))(stackeddata))
+          .enter().append("g").attr('class','bar')
+          .style("fill", function(d) {return z(d.key);})
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var rect=  g.selectAll("rect")
+            .data(function(d) {return d;})
+            .enter().append("rect")
+            .attr("x", function(d, i) {return x(i);})
+            .attr("height", height )
+            .attr("y", height + margin.top )
+            .attr("width", x.bandwidth());
+
+var bartrans=1000;
+          
+rect.transition()
+    .duration(bartrans)
+    .delay(function(d, i) { return 800 - i * 80; })
+    .attr("y", function(d) {return y(d[1]);})
+    .attr("height", function(d) {return y(d[0]) - y(d[1]);})
+
+svg.selectAll("rect").append("title")
+      .text(function(d) {
+                          var count= d[1]-d[0]
+                          var cat = d.data.indexOf(count)
+                          var cats = ['EMS', 'Traffic', 'Fire']
+                          cat = cats[cat]
+                          return(cat+' '+count)
+                          });
+
+
+  g.append("g")
+      .attr("class", "baraxis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x))
+      .style('opacity',0)
+      .append("text")
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+      .attr("x", 190)
+      .attr("dy", "2.5em")
+      .attr("text-anchor", "middle")
+      .attr("fill", "#000")
+      .text("Hour of the day")
+
+
+  g.append("g")
+      .attr("class", "baraxis")
+      .call(d3.axisLeft(y)
+              .ticks(10)
+              .tickFormat(d3.format(".0s")))
+      .style('opacity',0)
+      .append("text")
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+      .attr("x", 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "start")
+      .attr("fill", "#000")
+      .text("Number of calls")
+
+  g.selectAll('.baraxis').transition().delay(bartrans+800).duration(200).style('opacity',.9)
+
+}
+
+function updateBarchart(date){
+  barchart(csv,date)
+}
+barchart(csv);
+
+});
+</script>
+
+
+</body>
+</html>

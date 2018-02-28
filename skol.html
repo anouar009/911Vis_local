@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>911 Data Visualization</title>
+    <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+    <script type="text/javascript" src="heatmap.js"></script>
+    <script type="text/javascript" src="sunburst.js"></script>
+</head>
+
+<style>
+    button { border-radius: 42px;}
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-content: space-around;
+    }
+
+    .vizrow {
+      display: flex;
+      flex-flow: row wrap;
+      justify-content: space-around;
+      align-content: space-around;
+    }
+
+    .container {
+        flex-shrink: 1;
+    }
+
+    #sunburst {
+        /*background-color: rgb(255,200,255);*/
+        width: 400px;
+        height: 280px;
+    }
+
+    #heat {
+        width: 760px;
+        height: 280px;
+    }
+
+    #barchart {
+        background-color: green;
+        width: 440px; /* 400 */
+        height: 350px;
+    }
+
+    #map {
+        background-color: yellow;
+        width: 800px; /* 800 */
+        height: 400px; /* 550 */
+    }
+
+    /* style for heatmap */
+    .hover { 
+        stroke: black;
+        stroke-width: 2px;
+        transition: 0.2s;
+    }
+
+    /* style for sunburst */
+    .resFocus:hover {
+        transition: opacity 0.1s ease-out;
+        opacity: 1;
+        cursor: pointer;
+    }
+
+</style>
+
+<!-- HTML backbone -->
+
+<body>
+
+    <div class="vizrow">
+        <div id="sunburst" class="container"></div>
+        <div id="heat" class="container"></div>
+    </div>
+<!--
+    <div class="vizrow">
+        <div id="barchart" class="container">barchart</div>
+        <div id="map" class="container">map</div>
+    </div>
+    -->
+
+<script>
+d3.csv("911_clean.csv", function(error, csv) {
+
+if (error) throw error;
+
+//----------
+//HEATMAP
+heatmap(csv);
+
+//----------
+//SUNBURST
+sunburst(csv);
+
+
+
+function map(csv) {}
+
+function barchart(csv) {}
+
+});
+</script>
+
+
+</body>
+</html>
+

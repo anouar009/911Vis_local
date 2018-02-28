@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>911</title>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+ </head>
+<body>
+
+  <div>
+    <script type="text/javascript">
+  //TODO : better zoom?
+
+
+
+    function animated_geomap(date){
+
+      var width = 960;
+      var height = 500;
+      
+      var animationLength=10000; //in miliseconds
+      var intervalNumber=100; //number of updates
+
+      function stopTime(){window.clearInterval(timeVar);d3.selectAll('#time').text('911 Calls on '+date)}
+
+      var colormap={'EMS':'rgb(74, 189, 172)','Traffic':'rgb(255, 66, 26)','Fire':'rgb(251, 147, 33)'}
+      
+      var buttondiv = d3.select("body")
+                     .append('div').attr('id','timer')
+
+      var button = buttondiv.append('button')
+                            .text('Play')
+                            .on('click',animate)
+
+      function animate(){
+        g.selectAll('circle').remove(); 
+        elapsed = 0; 
+        timeVar = setInterval(playAnimation, animationLength/intervalNumber,newData,elapsed); 
+        setTimeout(stopTime,animationLength)
+      }
+
+      //Create SVG element and append map to the SVG
+      var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+              
+      var g= d3.select("svg")
+            .append("g")
+            .call(d3.zoom()
+              .scaleExtent([1, 8])
+              .on("zoom", zoom))
+
+
+      //format the date range
+      timeParser= d3.timeParse("%Y-%m-%d")
+      timeParser2= d3.timeParse("%Y-%m-%d %H:%M:%S")
+
+      dateRange = [(new Date(timeParser(date))).getTime(),(new Date(timeParser(date))).getTime()+24*3600*1000]; 
+
+      console.log(dateRange)
+      //get the range amplitude in milisecondeconds
+      diff = (dateRange[1] - dateRange[0])
+
+
+      d3.selectAll('#timer')
+        .append('p')
+        .attr('id','time')
+        .text('911 Calls on '+date)
+        
+
+
+      // Load GeoJSON data 
+      d3.json("montgomery.json", function(json) {
+
+      var center = d3.geoCentroid(json.features[0])
+      var scale  = 45000;
+      var offset = [width/2, height/2];
+      
+      projection = d3.geoMercator().scale(scale).center(center)
+                .translate(offset);
+
+      var path = d3.geoPath()              
+                   .projection(projection); 
+
+
+      // Bind the data to the SVG and create one path per GeoJSON feature
+      g.selectAll("path")
+        .data(json.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .style("stroke", "black")
+        .style("stroke-width", "1")
+        .attr('fill','None')
+      });  
+
+      // add data points
+      d3.csv("911_clean.csv", function(csv) {
+        newData=buildData(csv,dateRange)
+        console.log(newData)
+        updateMap(newData)
+      });
+
+      //function that filters the original dataset based on the selected range
+      function buildData(csv,range_){
+        var newdata=[]
+        var i=0
+        csv.forEach(function(item, index) {
+          if(range_[0]<=timeParser2(item.date+' '+item.time).getTime() & timeParser2(item.date+' '+item.time).getTime()<=range_[1])
+          {
+            newdata[i]=item
+            i=i+1
+          }
+        })
+        return(newdata)
+      };
+
+      //draw or redraw data points
+      function updateMap(data){
+
+        var dots=g.selectAll('circle')
+                  .data(data)
+                  .enter()
+                  .append('circle')
+                  .attr("r", 3)
+                  .attr("transform", function(d) {return "translate(" + projection([d.lng,d.lat]) + ")"})
+                  .style("fill", function(d) { return colormap[d.category]; });
+
+        dots.append("title")
+            .text(function(d) {
+                    return(d.date+' '+d.time+' '+d.category+': '+d.description)
+                    });
+      };
+
+      //animation
+      function playAnimation(data){
+
+        var until = (dateRange[0] + elapsed + (diff/intervalNumber))
+        var newRange=[dateRange[0],until]
+
+        filtered=buildData(data,newRange)
+
+        g.selectAll('circle').remove() //if we didn't write this line, we missed some data points at the end --> ??????
+        updateMap(filtered)
+
+        d3.selectAll('#time')
+        .text('911 Calls on ' +date+ ' until '+printTime((new Date(until))))
+
+        elapsed+=diff/intervalNumber
+
+        
+      }
+
+
+      function printTime(date) {
+        
+        //var month=''
+        //if((date.getMonth() + 1).toString().length<2)
+        //  {month='0'+(date.getMonth() + 1).toString()}
+        //else
+        //  {month=(date.getMonth() + 1).toString()};
+
+        //var day=''
+        //if((date.getDay()).toString().length<2)
+        //  {day='0'+(date.getDate()).toString()}
+        //else
+        //  {day=(date.getDate()).toString()};
+
+        var hour=''
+        if((date.getHours()).toString().length<2)
+          {hour='0'+(date.getHours() ).toString()}
+        else
+          {hour=(date.getHours()).toString()};
+
+        var minute=''
+        if((date.getMinutes()).toString().length<2)
+          {minute='0'+(date.getMinutes() ).toString()}
+        else
+          {minute=(date.getMinutes()).toString()};
+
+        var second=''
+        if((date.getSeconds()).toString().length<2)
+          {second='0'+(date.getSeconds()).toString()}
+        else
+          {second=(date.getSeconds()).toString()};
+
+
+        //returndate.getFullYear() +
+          //'-' + month +
+          //'-' + day  +
+          //' ' + 
+          return hour +
+          ':' + minute +
+          ':' + second
+      };
+
+
+   function zoom() {
+      g.attr("transform", d3.event.transform);
+    }
+};
+
+function static_geomap(){
+  var width = 960;
+  var height = 500;
+
+  var colormap={'EMS':'rgb(74, 189, 172)','Traffic':'rgb(255, 66, 26)','Fire':'rgb(251, 147, 33)'}
+  //Create SVG element and append map to the SVG
+  var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+          
+  var g= d3.select("svg")
+        .append("g")
+        .call(d3.zoom()
+          .scaleExtent([1, 8])
+          .on("zoom", zoom))
+
+  // Load GeoJSON data 
+  d3.json("montgomery.json", function(json) {
+
+  var center = d3.geoCentroid(json.features[0])
+  var scale  = 45000;
+  var offset = [width/2, height/2];
+  projection = d3.geoMercator().scale(scale).center(center)
+            .translate(offset);
+
+  var path = d3.geoPath()              
+               .projection(projection);        
+  // Bind the data to the SVG and create one path per GeoJSON feature
+  g.selectAll("path")
+    .data(json.features)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .style("stroke", "black")
+    .style("stroke-width", "1")
+    .attr('fill','None')
+    //.attr('transform',function(d) {var t = path.centroid(d.geometry);return "translate(" + [-t[0]/2,t[1]/2] + ")"} );
+  });  
+
+  // add data points
+
+  d3.csv("911_clean.csv", function(csv) {
+
+    var dots=g.selectAll('dots')
+               .data(csv)
+               .enter()
+               .append('circle')
+               .attr("r", 2)
+               .attr("transform", function(d) {return "translate(" + projection([d.lng,d.lat]) + ")"})
+               .style("fill", function(d) { return colormap[d.category]; });
+
+      dots.append("title")
+          .text(function(d) {
+              return(d.date+' '+d.time+' '+d.category+': '+d.description)
+              });
+  });
+
+ function zoom() {
+      g.attr("transform", d3.event.transform);
+    }
+};
+
+
+
+//simulate date selection (done on heatmap)
+var date='2016-06-12' 
+
+function geomap(date)
+{
+  if(date)
+  {animated_geomap(date)}
+  else
+    {static_geomap()}
+}
+
+geomap(date) //remove date arg to display static version (initial one?)
+        </script>
+      </div>
+  </body>
+</html>
